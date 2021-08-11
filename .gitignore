@@ -1,9 +1,0 @@
-__pycache__/
-build/
-dist/
-*.log
-*.exe
-*.png
-*.ico
-*.spec
-test.py
