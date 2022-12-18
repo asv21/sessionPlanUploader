@@ -30,6 +30,8 @@ from selenium.webdriver.remote.mobile import Mobile
 from selenium.webdriver.remote.remote_connection import RemoteConnection
 from selenium.webdriver.remote.switch_to import SwitchTo
 from selenium.webdriver.remote.webdriver import WebDriver
+from webdriver_manager.firefox import GeckoDriverManager
+from selenium.webdriver.firefox.service import Service
 
 import time
 
@@ -39,6 +41,11 @@ import pandas as pd
 from PyQt5.QtWidgets import QSystemTrayIcon
 from main_window import Ui_MainWindow
 from sessionPlainUploaderHelpDiaglogUI import Ui_help
+
+import os
+import sys
+
+
 # This webdriver can directly attach to an existing session.
 class uploadBotWorker(QThread):
         progress = pyqtSignal(int)
@@ -196,15 +203,14 @@ class uploadBotWorker(QThread):
             except Exception as e:
                 self.messagePasser.emit(str(e))
                 logging.error("Excel opening error: "+str(e))
-            try:
-                time.sleep(2)
+            try:                
                 WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH,sessionPlanPath[sheet_index])))
-                self.driver.find_element_by_xpath(sessionPlanPath[sheet_index]).click() 
+                self.driver.find_element(By.XPATH,sessionPlanPath[sheet_index]).click() 
                 time.sleep(2)                                                   
                 currentRow=2
                                                    
                 while currentRow<=sessionPlanData.last_valid_index():
-                    self.driver.find_element_by_xpath(addButtonPath[sheet_index]).click()
+                    self.driver.find_element(By.XPATH,addButtonPath[sheet_index]).click()
                     time.sleep(2)
                     self.sessionNumber.emit(int(str(sessionPlanData.loc[currentRow,1]).strip()))                    
                     if int(str(sessionPlanData.loc[currentRow,1]).strip())<=self.startingSessionNo:
@@ -218,43 +224,33 @@ class uploadBotWorker(QThread):
                             if currentRow>=sessionPlanData.last_valid_index():
                                 self.messagePasser.emit("Oh no...!Could not find the requested session number!")
                                 logging.error("Oh no...!Could not find the requested session number!")
-                                return
-                    progessPercentage=round((int(sessionPlanData.loc[currentRow,1])-1)/int(sessionPlanData.loc[1,1])*100)
-                    self.progress.emit(progessPercentage)               
+                                return                                  
                     ## Session number
                     WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH,'//*[@id="coursehandoutdeliveryplan-chdp_session_no"]/option[text()='+str(sessionPlanData.loc[currentRow,1])+']')))
-                    self.driver.find_element_by_xpath('//*[@id="coursehandoutdeliveryplan-chdp_session_no"]/option[text()='+str(sessionPlanData.loc[currentRow,1])+']').click()
-                    time.sleep(2)                    
+                    self.driver.find_element(By.XPATH,'//*[@id="coursehandoutdeliveryplan-chdp_session_no"]/option[text()='+str(sessionPlanData.loc[currentRow,1])+']').click()                                      
                     #topics title                   
-                    self.driver.find_element_by_xpath('//*[@id="coursehandoutdeliveryplan-chdp_topics"]').send_keys(str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),3]).strip().replace('\n'," "))
-                    time.sleep(2)
+                    self.driver.find_element(By.XPATH,'//*[@id="coursehandoutdeliveryplan-chdp_topics"]').send_keys(str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),3]).strip().replace('\n'," "))                    
                     #textbook
-                    self.driver.find_element_by_xpath('//*[@id="coursehandoutdeliveryplan-chdp_book_chapter_page_no"]').send_keys(str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),4]).strip().replace('\n'," "))                    
-                    time.sleep(2)
+                    self.driver.find_element(By.XPATH,'//*[@id="coursehandoutdeliveryplan-chdp_book_chapter_page_no"]').send_keys(str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),4]).strip().replace('\n'," "))                                        
                     #co
-                    self.driver.find_element_by_xpath('//*[@id="cat-id1"]/option[text()="'+str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),1]).strip()+'"]').click()
+                    self.driver.find_element(By.XPATH,'//*[@id="cat-id1"]/option[text()="'+str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),1]).strip()+'"]').click()
                     #coi
                     time.sleep(2)                        
-                    self.driver.find_element_by_xpath('//*[@id="subcat-id1"]/option[text()="'+str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),2]).strip()+'"]').click()
-                    #teaching components
-                    time.sleep(2)
+                    self.driver.find_element(By.XPATH,'//*[@id="subcat-id1"]/option[text()="'+str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),2]).strip()+'"]').click()
+                    #teaching components                    
                     teachingComponents= str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),5]).split(",")
-                    self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[8]/span/div/button/span').click()
-                    time.sleep(2)
+                    self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[8]/span/div/button/span').click()                    
                     for teachingComponent in teachingComponents:                                                                                     
-                        self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[8]/span/div/ul/li['+str(teachingComponentPath.index(str(teachingComponent).strip())+2)+']/a/label').click()
-                        time.sleep(2)
-                    self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[8]/span/div/button/span').click()
-                    time.sleep(2)  
+                        self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[8]/span/div/ul/li['+str(teachingComponentPath.index(str(teachingComponent).strip())+2)+']/a/label').click()                        
+                    self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[8]/span/div/button/span').click()                    
                     #evalcomponents                                         
                     evalComponents = str(topicList.loc[int(sessionPlanData.loc[currentRow,1]),6]).split(",")
-                    self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[9]/span/div/button/span').click()
-                    time.sleep(2)
+                    self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[9]/span/div/button/span').click()                    
                     for evalComponent in evalComponents:
-                        # Select(self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[9]/span/div/button')).select_by_visible_text(evalComponent)                                
-                        self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[9]/span/div/ul/li['+str(evalComponentPath.index(str(evalComponent).strip())+2)+']/a/label').click()
-                        time.sleep(3)
-                    self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[9]/span/div/button/span').click()
+                        # Select(self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[9]/span/div/button')).select_by_visible_text(evalComponent)                                
+                        self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[9]/span/div/ul/li['+str(evalComponentPath.index(str(evalComponent).strip())+2)+']/a/label').click()                        
+                        time.sleep(1)                      
+                    self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[1]/div/div[9]/span/div/button/span').click()
                     time.sleep(2)  
                     ##Outcomes                              
                     currentRow+=1                                                       
@@ -262,10 +258,10 @@ class uploadBotWorker(QThread):
                         outcomeNumber=sessionPlanData.loc[currentRow,1]
                         outcome=sessionPlanData.loc[currentRow,2]      
                         if outcomeNumber>1:
-                            self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[2]/div/div[1]/div/table/tbody/tr[1]/td[4]/div/i').click()
+                            self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[2]/div/div[1]/div/table/tbody/tr[1]/td[4]/div/i').click()
                             time.sleep(2)
-                        self.driver.find_element_by_xpath('//*[@id="coursehandoutsessionoutcomemappinginfo-'+str(int(outcomeNumber)-1)+'-csomi_course_outcome_number"]/option[text()="'+str(outcomeNumber).strip()+'"]').click()      
-                        self.driver.find_element_by_xpath('//*[@id="coursehandoutsessionoutcomemappinginfo-'+str(int(outcomeNumber)-1)+'-csomi_desc"]').send_keys(str(outcome).strip().replace('\n'," "))
+                        self.driver.find_element(By.XPATH,'//*[@id="coursehandoutsessionoutcomemappinginfo-'+str(int(outcomeNumber)-1)+'-csomi_course_outcome_number"]/option[text()="'+str(outcomeNumber).strip()+'"]').click()      
+                        self.driver.find_element(By.XPATH,'//*[@id="coursehandoutsessionoutcomemappinginfo-'+str(int(outcomeNumber)-1)+'-csomi_desc"]').send_keys(str(outcome).strip().replace('\n'," "))
                         currentRow+=1   
                         time.sleep(2)                         
                     currentRow+=1
@@ -274,29 +270,31 @@ class uploadBotWorker(QThread):
                     while currentRow<=sessionPlanData.last_valid_index():
                         if(pd.notna(sessionPlanData.loc[currentRow,1])):
                             if topicNumber>0:
-                                self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[2]/div/div[2]/div/table/tbody/tr/td[8]/div/i').click()
+                                self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[1]/div[2]/div/div[2]/div/table/tbody/tr/td[8]/div/i').click()
                                 time.sleep(2)
-                            self.driver.find_element_by_xpath('//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chsp_session_minutes"]/option[text()="'+str(sessionPlanData.loc[currentRow,0]).strip()+'"]').click()                                                        
+                            self.driver.find_element(By.XPATH,'//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chsp_session_minutes"]/option[text()="'+str(sessionPlanData.loc[currentRow,0]).strip()+'"]').click()                                                        
                             time.sleep(2)
-                            self.driver.find_element_by_xpath('//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chsp_topics"]').send_keys(sessionPlanData.loc[currentRow,1].strip().replace('\n'," "))
+                            self.driver.find_element(By.XPATH,'//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chsp_topics"]').send_keys(sessionPlanData.loc[currentRow,1].strip().replace('\n'," "))
                             time.sleep(2)
-                            Select(self.driver.find_element_by_xpath('//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chpsi_btl_id"]')).select_by_index(int(str(sessionPlanData.loc[currentRow,2]).strip()))
+                            Select(self.driver.find_element(By.XPATH,'//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chpsi_btl_id"]')).select_by_index(int(str(sessionPlanData.loc[currentRow,2]).strip()))
                             time.sleep(2)                               
-                            self.driver.find_element_by_xpath('//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chsp_teaching_learning_id"]/option[text()="'+str(sessionPlanData.loc[currentRow,3]).strip()+'"]').click()
+                            self.driver.find_element(By.XPATH,'//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chsp_teaching_learning_id"]/option[text()="'+str(sessionPlanData.loc[currentRow,3]).strip()+'"]').click()
                             time.sleep(2)
                             alm=str(sessionPlanData.loc[currentRow,4]).strip().replace('\n'," ")                            
                             alm='--- NOT APPLICABLE ---' if alm=='nan' else alm 
-                            logging.info("ALM :" + alm)                                   
-                            self.driver.find_element_by_xpath('//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chsp_delivery_alm"]/option[text()="'+alm+'"]').click()
+                            logging.info("ALM :" + alm)                                                               
+                            self.driver.find_element(By.XPATH,'//*[@id="coursehandoutsessionplan-'+str(topicNumber)+'-chsp_delivery_alm"]/option[contains(text(),"'+alm+'")]').click()                        
                             topicNumber+=1
                             currentRow+=1
-                            time.sleep(5)
+                            time.sleep(2)
                         else:
                             break
                     currentRow+=1  
-                    self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[2]/button').click()  
+                    self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div[4]/div/div/div[2]/div/div/div/div/form/div/div[2]/button').click()  
                     time.sleep(2)
-                    
+                    progessPercentage=round((int(sessionPlanData.loc[currentRow,1])-1)/int(sessionPlanData.loc[1,1])*100)
+                    self.progress.emit(progessPercentage)
+                                   
                 return
             except Exception as e:
                 exc_type, exc_obj, exc_tb=sys.exc_info()
@@ -304,12 +302,16 @@ class uploadBotWorker(QThread):
                 self.messagePasser.emit(str(e)+":"+str(exc_tb.tb_lineno))
 
         def run(self):
-            try:
+            try:                
+                # determine if application is a script file or frozen exe                
                                                                 
-                if self.session_id !="none" and self.url!="none":                
+                try:
+                    if self.session_id =="none" and self.url=="none":                                
+                        self.driver=webdriver.Firefox(service=Service(GeckoDriverManager().install())) 
+                    else:
                     self.create_driver_session(self.session_id,self.url)
-                else:
-                    self.driver=webdriver.Chrome(executable_path='chromedriver.exe')                
+                except:
+                    self.driver=webdriver.Firefox(service=Service(GeckoDriverManager().install()))                 
 
                 self.driver.get("https://newerp.kluniversity.in")
                 self.driver.maximize_window()
@@ -327,28 +329,28 @@ class uploadBotWorker(QThread):
                 '''
                 /html/body/div[1]/div[1]/div/div/div/a/span/i
                 '''
-                self.driver.find_element_by_xpath("/html/body/div[1]/div[1]/div/div/div/a/span/i").click()            
+                self.driver.find_element(By.XPATH,"/html/body/div[1]/div[1]/div/div/div/a/span/i").click()            
                 time.sleep(2)
 
                 #captcha image xpath //*[@id="loginform-captcha-image"]
 
-                element=self.driver.find_element_by_xpath("//*[@id='loginform-captcha-image']")
+                element=self.driver.find_element(By.XPATH,"//*[@id='loginform-captcha-image']")
                 location = element.location
                 size = element.size
                 self.driver.save_screenshot('screenshot.png')
 
-                uname=self.driver.find_element_by_xpath("//*[@id='loginform-username']")
+                uname=self.driver.find_element(By.XPATH,"//*[@id='loginform-username']")
                 uname.clear()
                 uname.send_keys(Keys.HOME)
                 uname.send_keys(self.username)
 
 
-                pwrd=self.driver.find_element_by_xpath("//*[@id='loginform-password']")
+                pwrd=self.driver.find_element(By.XPATH,"//*[@id='loginform-password']")
                 pwrd.clear()
                 pwrd.send_keys(Keys.HOME)
                 pwrd.send_keys(self.mypassword)
 
-                captcha=self.driver.find_element_by_xpath('//*[@id="loginform-captcha"]')
+                captcha=self.driver.find_element(By.XPATH,'//*[@id="loginform-captcha"]')
                 captcha.clear()
                 captcha_text=self.get_captcha_text(location,size)
                 captcha.send_keys(captcha_text)
@@ -368,13 +370,13 @@ class uploadBotWorker(QThread):
                 except TimeoutException:
                     logging.error("Loading error")      
                       
-                # self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[1]/div/div/div/ul/li[5]/a').click()     #  My CC List       
+                # self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[1]/div/div/div/ul/li[5]/a').click()     #  My CC List       
                 # time.sleep(2)
                 self.driver.get("https://newerp.kluniversity.in/index.php?r=courses%2Fcourseprogramcoordinatormappingview%2Ftab_index_personal")
                 time.sleep(2)
-                self.driver.find_element_by_xpath('//*[@id="dynamicmodel-academicyear"]/option[text()="'+self.academicYear+'"]').click()
-                self.driver.find_element_by_xpath('//*[@id="dynamicmodel-semesterid"]/option[text()="'+self.semester+'"]').click()
-                self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div/div/form/div/div[3]/button[1]').click()
+                self.driver.find_element(By.XPATH,'//*[@id="dynamicmodel-academicyear"]/option[text()="'+self.academicYear+'"]').click()
+                self.driver.find_element(By.XPATH,'//*[@id="dynamicmodel-semesterid"]/option[text()="'+self.semester+'"]').click()
+                self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div/div/form/div/div[3]/button[1]').click()
                 time.sleep(2)
                 try:
                     numberOfCourses_elem=WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[4]/div/div/div[2]/div[1]/div[1]/div/div/b[2]')))
@@ -386,11 +388,11 @@ class uploadBotWorker(QThread):
                     '''
                     //*[@id="w0"]/table/tbody/tr[1]/td[3]
                     '''
-                    courseCode_text=self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div[1]/div[1]/div/table/tbody/tr['+str(i+1)+']/td[3]').text
-                    Offeredto_text=self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div[1]/div[1]/div/table/tbody/tr['+str(i+1)+']/td[6]').text
+                    courseCode_text=self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div[1]/div[1]/div/table/tbody/tr['+str(i+1)+']/td[3]').text
+                    Offeredto_text=self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div[1]/div[1]/div/table/tbody/tr['+str(i+1)+']/td[6]').text
                     logging.info("Course code: "+str(courseCode_text) +"  Offered To: "+ str(Offeredto_text))                    
                     if courseCode_text == self.courseCode and Offeredto_text==self.Offeredto:
-                        self.driver.find_element_by_xpath('/html/body/div[1]/div[4]/div/div/div[2]/div[1]/div[1]/div/table/tbody/tr['+str(i+1)+']/td[13]/a[2]').click()
+                        self.driver.find_element(By.XPATH,'/html/body/div[1]/div[4]/div/div/div[2]/div[1]/div[1]/div/table/tbody/tr['+str(i+1)+']/td[13]/a[2]').click()
                         courseFound=1
                         break
                 if courseFound==0:
@@ -398,8 +400,7 @@ class uploadBotWorker(QThread):
                     self.messagePasser.emit("Oh No...!Could not find the course")                    
                     return
                 else:
-                    logging.info("Course found. Continuing to uploading page..!")                            
-                time.sleep(2)            
+                    logging.info("Course found. Continuing to uploading page..!")                                            
                 
                 # self.ltps=[0,0,0,4]                
                 for index,value in enumerate(self.ltps):
