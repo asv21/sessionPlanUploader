@@ -309,7 +309,7 @@ class uploadBotWorker(QThread):
                     if self.session_id =="none" and self.url=="none":                                
                         self.driver=webdriver.Firefox(service=Service(GeckoDriverManager().install())) 
                     else:
-                    self.create_driver_session(self.session_id,self.url)
+                        self.create_driver_session(self.session_id,self.url)
                 except:
                     self.driver=webdriver.Firefox(service=Service(GeckoDriverManager().install()))                 
 
